@@ -1,2 +1,2 @@
-# scrb
-Single Cell RNA Browser
+# Single Cell RNA Browser (SCRB)
+

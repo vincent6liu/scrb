@@ -53,8 +53,8 @@ class SCRBGui(tk.Tk):
         tk.Label(self, text="Single Cell RNA Browser", font=('Helvetica', 25), fg="black",
                  bg="white", padx=100, pady=0).grid(row=1)
 
-        helv20 = font.Font(family='Helvetica', size=20)
-        tk.Button(self, text="Load Files", font=helv20, command=self.load_files, height=3, width=10).grid(row=2)
+        self.helv20 = font.Font(family='Helvetica', size=20)
+        tk.Button(self, text="Load Files", font=self.helv20, command=self.load_files, height=3, width=10).grid(row=2)
 
         # update
         self.protocol('WM_DELETE_WINDOW', self.quit_scrb())
@@ -158,14 +158,50 @@ class SCRBGui(tk.Tk):
             clusters = pd.Series(clusters, index=matrix.index)
             self.data['cluster'] = clusters
             labels = []
-            for line in islice(cluster_file, 1, None):
+            for line in cluster_file:
                 newlab = line.split('\t')
                 newlab[1] = newlab[1][:-1]
                 newlab = tuple(newlab)
                 labels.append(newlab)
             self.data['clusterlab'] = labels
 
+        # read tsne information
+        tsne = pd.DataFrame.from_csv(self.tsne_file)
+        self.data['tsne'] = tsne
 
+        # read gene list file
+        gene_list = pd.DataFrame.from_csv(self.genelist_file)
+        self.data['genelist'] = gene_list
+
+        # close the file loading window
+        self.import_files.destroy()
+
+        # construct the main window
+        for item in self.grid_slaves():
+            item.grid_forget()
+
+        # list of genes ranked by p-value
+        self.genes_list = ttk.Treeview(height=30)
+        self.genes_list.heading('#0', text='Genes')
+        self.genes_list.grid(column=0, row=0, rowspan=6, sticky='NSEW')
+        ysb = ttk.Scrollbar(orient=tk.VERTICAL, command=self.genes_list.yview)
+        xsb = ttk.Scrollbar(orient=tk.HORIZONTAL, command=self.genes_list.xview)
+        self.genes_list.configure(yscroll=ysb.set, xscroll=xsb.set)
+
+        # option to visualize gene expression
+        self.visual_button = tk.Button(text="Select gene(s)", command=self.exp_visual,
+                                       font=self.helv20, height=5, width=30)
+        self.visual_button.grid(column=0, row=8, sticky='NSEW')
+
+        self.notebook = ttk.Notebook(height=600, width=600)
+        self.notebook.grid(column=1, row=0, rowspan=14, columnspan=4, sticky='NSEW')
+        self.tabs = []
+
+        # update
+        self.geometry('1000x650')
+
+    def exp_visual(self):
+        pass
 
     def save_plot(self):
         pass  # to be implemented

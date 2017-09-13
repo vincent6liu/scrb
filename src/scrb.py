@@ -15,6 +15,7 @@ import tkinter as tk
 import tkinter.font as font
 import numpy as np
 from tkinter import filedialog, ttk
+from itertools import *
 import csv
 
 
@@ -27,7 +28,12 @@ class SCRBGui(tk.Tk):
         self.fileMenu = tk.Menu(self.menubar, tearoff=0)
 
         self.currentPlot = None
-        self.data = {}
+        self.data = {'matrix': None, 'tsne': None, 'cluster': None, 'clusterlab':None, 'genelist': None}
+
+        self.countmatrix_file = None
+        self.cluster_file = None
+        self.tsne_file = None
+        self.genelist_file = None
 
         self.initialize()
 
@@ -129,7 +135,37 @@ class SCRBGui(tk.Tk):
             self.genelistfileVar.set(self.genelist_file)
 
     def process_data(self):
-        pass  # to be implemented
+
+        # make sure all the data are loaded
+        if None in {self.countmatrix_file, self.cluster_file, self.tsne_file, self.genelist_file}:
+            warning_window = tk.Toplevel()
+            tk.Label(warning_window, text="Warning: not all files are loaded!").grid(column=0, row=0)
+            tk.Button(warning_window, text="Ok", command=warning_window.destroy).grid(column=0, row=1)
+            return
+
+        # read the data matrix and filter out genes with 0 reads
+        matrix = pd.DataFrame.from_csv(self.countmatrix_file)
+        sums = matrix.sum(axis=0)
+        to_keep = np.where(sums > 0)[0]
+        matrix = matrix.iloc[:, to_keep]
+        self.data['matrix'] = matrix
+
+        # read the cluster information
+        with open(self.cluster_file) as cluster_file:
+            clusters = cluster_file.readline()
+            clusters = clusters.split(',')
+            clusters[-1] = clusters[-1][0]
+            clusters = pd.Series(clusters, index=matrix.index)
+            self.data['cluster'] = clusters
+            labels = []
+            for line in islice(cluster_file, 1, None):
+                newlab = line.split('\t')
+                newlab[1] = newlab[1][:-1]
+                newlab = tuple(newlab)
+                labels.append(newlab)
+            self.data['clusterlab'] = labels
+
+
 
     def save_plot(self):
         pass  # to be implemented

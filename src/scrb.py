@@ -252,11 +252,87 @@ class SCRBGui(tk.Tk):
 
         # add the gene list
         for index, row in gene_list.iterrows():
-            entry = str(index) + ' (p-value = ' + str(row['p-value']) + ')'
+            entry = str(index).upper() + ' (p-value = ' + str(row['p-value']) + ')'
             self.genes_list.insert('', 'end', text=entry, open=True)
 
     def exp_visual(self):
-        pass
+        self.get_genes = tk.Toplevel()
+        self.get_genes.resizable(False, False)
+        self.get_genes.title("Select genes")
+
+        geneEntryContainer = tk.Frame(self.get_genes)
+        geneEntryContainer.grid(column=0, row=0, sticky='w')
+        self.geneVar = tk.StringVar()
+        tk.Label(geneEntryContainer, text="Select one or more genes, separated by commas:").grid(column=0,
+                                                                                                 row=0, sticky='w')
+        tk.Entry(geneEntryContainer, textvariable=self.geneVar).grid(column=1, row=0, sticky='w')
+
+        # final buttons
+        finalButtonContainer = tk.Frame(self.get_genes)
+        finalButtonContainer.grid(column=0, row=1, sticky='w')
+        tk.Button(finalButtonContainer, text="Cancel", command=self.get_genes.destroy).grid(column=0, row=0, padx=35)
+        tk.Button(finalButtonContainer, text="Process", command=self._exp_visual).grid(column=1, row=0, padx=35)
+
+        self.wait_window(self.get_genes)
+
+    def _exp_visual(self):
+        self.get_genes.destroy()
+
+        genes = self.geneVar.get().upper().split(',')
+        num_genes, side = len(genes), 2
+        if num_genes == 0:
+            return
+
+        fontP = FontProperties()
+        fontP.set_size('xx-small')
+
+        # get the correct side length
+        while num_genes > side**2:
+            side += 1
+
+        matrix = self.data['matrix']
+        tsnedata = self.data['tsne']
+        communities = self.data['cluster']
+
+        fig, axarr = plt.subplots(side, side)
+        sc = axarr[0, 0].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
+                            c=communities.values, edgecolors='none', cmap='rainbow')
+        axarr[0, 0].set(adjustable='box-forced')
+        axarr[0, 0].set_title('Cluster')
+
+        """
+        lp = lambda i: plt.plot([], color=sc.cmap(sc.norm(i)), ms=np.sqrt(size), mec="none",
+                                label="Cluster {:g}".format(i), ls="", marker="o")[0]
+        handles = [lp(int(i)) for i in np.unique(communities)]
+        plt.legend(handles=handles, prop=fontP, loc='upper right').set_frame_on(True)
+        """
+
+        for i in range(side):
+            for j in range(side):
+                if i == 0 and j == 0:
+                    pass
+                elif len(genes) != 0:
+                    curgene = genes.pop(0)
+                    expression = matrix[curgene]
+                    axarr[i, j].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
+                                        c=expression.values, edgecolors='none', cmap='Oranges')
+                    axarr[i, j].set(adjustable='box-forced')
+                    axarr[i, j].set_title(curgene)
+                else:
+                    axarr[i, j].set(adjustable='box-forced')
+
+        plt.setp([a.get_xticklabels() for a in axarr[0, :]], visible=False)
+        plt.setp([a.get_yticklabels() for a in axarr[:, 1]], visible=False)
+
+        self.tabs.append([tk.Frame(self.notebook), fig])
+        self.notebook.add(self.tabs[len(self.tabs) - 1][0], text="Cluster")
+
+        self.canvas = FigureCanvasTkAgg(fig, self.tabs[len(self.tabs) - 1][0])
+        self.canvas.show()
+        self.canvas.get_tk_widget().grid(column=1, row=1, rowspan=10, columnspan=4, sticky='NSEW')
+
+        self.currentPlot = 'tsne'
+
 
     def _visualizeCluster(self):
         tsnedata = self.data['tsne']
@@ -301,7 +377,7 @@ class SCRBGui(tk.Tk):
         fig, ax = get_fig(fig=fig, ax=ax)
         if isinstance(color, pd.Series) and ge:
             sc = plt.scatter(tsne['tSNE1'], tsne['tSNE2'], s=size,
-                             c=color.values, edgecolors='none', cmap='PiYG')
+                             c=color.values, edgecolors='none', cmap='Oranges')
         elif isinstance(color, pd.Series) and not ge:  # cluster visualization
             sc = plt.scatter(tsne['tSNE1'], tsne['tSNE2'], s=size,
                              c=color.values, edgecolors='none', cmap='rainbow')

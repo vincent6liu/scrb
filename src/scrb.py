@@ -92,7 +92,7 @@ class SCRBGui(tk.Tk):
         # set up menu bar
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.fileMenu.add_command(label="Save Plot", state='disabled', command=self.save_plot)
-        self.fileMenu.add_command(label="Exit", command=self.quit_scrb())
+        self.fileMenu.add_command(label="Exit", command=self.quit_scrb)
 
         self.config(menu=self.menubar)
 
@@ -105,7 +105,7 @@ class SCRBGui(tk.Tk):
         tk.Button(self, text="Load Files", font=self.helv20, command=self.load_files, height=3, width=10).grid(row=2)
 
         # update
-        self.protocol('WM_DELETE_WINDOW', self.quit_scrb())
+        self.protocol('WM_DELETE_WINDOW', self.quit_scrb)
         self.grid_columnconfigure(0, weight=1)
         self.resizable(False, False)
         self.update()
@@ -279,7 +279,7 @@ class SCRBGui(tk.Tk):
     def _exp_visual(self):
         self.get_genes.destroy()
 
-        genes = re.split('[, ]+',self.geneVar.get().upper())
+        genes = re.split('[, ]+', self.geneVar.get().upper())
         num_genes, side = len(genes), 2
         if num_genes == 0:
             return
@@ -412,7 +412,8 @@ class SCRBGui(tk.Tk):
         pass  # to be implemented
 
     def quit_scrb(self):
-        pass  # to be implemented
+        self.quit()
+        self.destroy()
 
 
 def launch():

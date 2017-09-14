@@ -1,11 +1,11 @@
 #!/usr/local/bin/python3
 
 import matplotlib
-
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+
 from functools import reduce, partial
 from mpl_toolkits.mplot3d import Axes3D  # necessary for 3D graph
 import os
@@ -22,6 +22,7 @@ import warnings
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import seaborn as sns
+import re
 from matplotlib.font_manager import FontProperties
 
 # set plotting defaults
@@ -206,7 +207,7 @@ class SCRBGui(tk.Tk):
             self.data['cluster'] = clusters
             labels = []
             for line in cluster_file:
-                newlab = line.split('\t')
+                newlab = re.split('[\t ,]',line)
                 newlab[1] = newlab[1][:-1]
                 newlab = tuple(newlab)
                 labels.append(newlab)
@@ -278,7 +279,7 @@ class SCRBGui(tk.Tk):
     def _exp_visual(self):
         self.get_genes.destroy()
 
-        genes = self.geneVar.get().upper().split(',')
+        genes = re.split('[, ]+',self.geneVar.get().upper())
         num_genes, side = len(genes), 2
         if num_genes == 0:
             return
@@ -320,6 +321,8 @@ class SCRBGui(tk.Tk):
                     axarr[i, j].set_title(curgene)
                 else:
                     axarr[i, j].set(adjustable='box-forced')
+                    # turn off ones that do not display genes
+                    axarr[i, j].axis('off')
 
         plt.setp([a.get_xticklabels() for a in axarr[0, :]], visible=False)
         plt.setp([a.get_yticklabels() for a in axarr[:, 1]], visible=False)
@@ -401,7 +404,7 @@ class SCRBGui(tk.Tk):
                         color=qualitative_colors(2)[1] if color is None else color)
 
         ax.set_title(title)
-        plt.axis('tight')
+        #plt.axis('tight')
         plt.tight_layout()
         return fig, ax
 

@@ -247,7 +247,13 @@ class SCRBGui(tk.Tk):
         # update
         self.geometry('1000x650')
 
+        # visualize cluster on tSNE projection upon loading
         self._visualizeCluster()
+
+        # add the gene list
+        for index, row in gene_list.iterrows():
+            entry = str(index) + ' (p-value = ' + str(row['p-value']) + ')'
+            self.genes_list.insert('', 'end', text=entry, open=True)
 
     def exp_visual(self):
         pass

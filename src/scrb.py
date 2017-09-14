@@ -17,6 +17,53 @@ import numpy as np
 from tkinter import filedialog, ttk
 from itertools import *
 import csv
+import matplotlib
+import warnings
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+import seaborn as sns
+from matplotlib.font_manager import FontProperties
+
+# set plotting defaults
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')  # catch experimental ipython widget warning
+    sns.set(context="paper", style='ticks', font_scale=1.5, font='Bitstream Vera Sans')
+
+matplotlib.rcParams['image.cmap'] = 'viridis'
+size = 12
+
+
+def qualitative_colors(n):
+    """ Generalte list of colors
+    :param n: Number of colors
+    """
+    return sns.color_palette('Set1', n)
+
+
+def get_fig(fig=None, ax=None, figsize=[6.5, 6.5]):
+    """fills in any missing axis or figure with the currently active one
+    :param ax: matplotlib Axis object
+    :param fig: matplotlib Figure object
+    """
+    if not fig:
+        fig = plt.figure(figsize=figsize)
+    if not ax:
+        ax = plt.gca()
+    return fig, ax
+
+
+def density_2d(x, y):
+    """return x and y and their density z, sorted by their density (smallest to largest)
+
+    :param x:
+    :param y:
+    :return:
+    """
+    xy = np.vstack([np.ravel(x), np.ravel(y)])
+    z = gaussian_kde(xy)(xy)
+    i = np.argsort(z)
+    return np.ravel(x)[i], np.ravel(y)[i], np.arcsinh(z[i])
+
 
 
 class SCRBGui(tk.Tk):
@@ -181,7 +228,7 @@ class SCRBGui(tk.Tk):
             item.grid_forget()
 
         # list of genes ranked by p-value
-        self.genes_list = ttk.Treeview(height=30)
+        self.genes_list = ttk.Treeview(height=28)
         self.genes_list.heading('#0', text='Genes')
         self.genes_list.grid(column=0, row=0, rowspan=6, sticky='NSEW')
         ysb = ttk.Scrollbar(orient=tk.VERTICAL, command=self.genes_list.yview)
@@ -190,7 +237,7 @@ class SCRBGui(tk.Tk):
 
         # option to visualize gene expression
         self.visual_button = tk.Button(text="Select gene(s)", command=self.exp_visual,
-                                       font=self.helv20, height=5, width=30)
+                                       font=self.helv20, height=5, width=30, wraplength=60)
         self.visual_button.grid(column=0, row=8, sticky='NSEW')
 
         self.notebook = ttk.Notebook(height=600, width=600)
@@ -200,8 +247,81 @@ class SCRBGui(tk.Tk):
         # update
         self.geometry('1000x650')
 
+        self._visualizeCluster()
+
     def exp_visual(self):
         pass
+
+    def _visualizeCluster(self):
+        tsnedata = self.data['tsne']
+        communities = self.data['cluster']
+
+        if min(set(communities)) == 0:
+            communities = [x+1 for x in communities]
+        color = communities
+
+        self.fig = plt.figure(figsize=[6, 6])
+        gs = gridspec.GridSpec(1, 1)
+        self.ax = self.fig.add_subplot(gs[0, 0])
+
+        self.plot_tsne(tsnedata, self.fig, self.ax, color=color)
+        self.ax.set_title('Cluster Visualization')
+        self.ax.set_xlabel('tSNE1')
+        self.ax.set_ylabel('tSNE2')
+
+        gs.tight_layout(self.fig)
+
+        self.tabs.append([tk.Frame(self.notebook), self.fig])
+        self.notebook.add(self.tabs[len(self.tabs) - 1][0], text="Cluster")
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self.tabs[len(self.tabs) - 1][0])
+        self.canvas.show()
+        self.canvas.get_tk_widget().grid(column=1, row=1, rowspan=10, columnspan=4, sticky='NSEW')
+
+        self.currentPlot = 'tsne'
+
+    @staticmethod
+    def plot_tsne(tsne, fig=None, ax=None, density=False, color=None, ge=False, title='tSNE projection'):
+        """Plot tSNE projections of the data
+        Must make sure the object being operated contains tSNE data
+        :param tsne: pd.Dataframe that contains tsne data
+        :param fig: matplotlib Figure object
+        :param ax: matplotlib Axis object
+        :param title: Title for the plot
+        """
+        fontP = FontProperties()
+        fontP.set_size('xx-small')
+
+        fig, ax = get_fig(fig=fig, ax=ax)
+        if isinstance(color, pd.Series) and ge:
+            sc = plt.scatter(tsne['tSNE1'], tsne['tSNE2'], s=size,
+                             c=color.values, edgecolors='none', cmap='PiYG')
+        elif isinstance(color, pd.Series) and not ge:  # cluster visualization
+            sc = plt.scatter(tsne['tSNE1'], tsne['tSNE2'], s=size,
+                             c=color.values, edgecolors='none', cmap='rainbow')
+            lp = lambda i: plt.plot([], color=sc.cmap(sc.norm(i)), ms=np.sqrt(size), mec="none",
+                                    label="Cluster {:g}".format(i), ls="", marker="o")[0]
+            handles = [lp(int(i)) for i in np.unique(color)]
+            plt.legend(handles=handles, prop=fontP, loc='upper right').set_frame_on(True)
+        elif density:
+            # Calculate the point density
+            xy = np.vstack([tsne['tSNE1'], tsne['tSNE2']])
+            z = gaussian_kde(xy)(xy)
+
+            # Sort the points by density, so that the densest points are plotted last
+            idx = z.argsort()
+            x, y, z = tsne['tSNE1'][idx], tsne['tSNE2'][idx], z[idx]
+
+            plt.scatter(x, y, s=size, c=z, edgecolors='none')
+            plt.colorbar()
+        else:
+            plt.scatter(tsne['tSNE1'], tsne['tSNE2'], s=size, edgecolors='none',
+                        color=qualitative_colors(2)[1] if color is None else color)
+
+        ax.set_title(title)
+        plt.axis('tight')
+        plt.tight_layout()
+        return fig, ax
 
     def save_plot(self):
         pass  # to be implemented

@@ -122,8 +122,8 @@ class SCRBGui(tk.Tk):
         matrixContainer.grid(column=0, row=0, sticky='w')
         tk.Label(matrixContainer, text="Count matrix file: ").grid(column=0, row=0, sticky='w')
         tk.Button(matrixContainer, text="Load", command=lambda: self.get_filename('count matrix')).grid(column=1,
-                                                                                                          row=0,
-                                                                                                          sticky='w')
+                                                                                                        row=0,
+                                                                                                        sticky='w')
         self.matrixfileVar = tk.StringVar()
         self.matrixfileVar.set("None selected")
         tk.Label(matrixContainer, textvariable=self.matrixfileVar).grid(column=2, row=0, sticky='e')
@@ -133,7 +133,7 @@ class SCRBGui(tk.Tk):
         clusterContainer.grid(column=0, row=1, sticky='w')
         tk.Label(clusterContainer, text="Cluster file: ").grid(column=0, row=0, sticky='w')
         tk.Button(clusterContainer, text="Load", command=lambda: self.get_filename('cluster')).grid(column=1, row=0,
-                                                                                                     sticky='w')
+                                                                                                    sticky='w')
         self.clusterfileVar = tk.StringVar()
         self.clusterfileVar.set("None selected")
         tk.Label(clusterContainer, textvariable=self.clusterfileVar).grid(column=2, row=0, sticky='e')
@@ -143,7 +143,7 @@ class SCRBGui(tk.Tk):
         tsneContainer.grid(column=0, row=2, sticky='w')
         tk.Label(tsneContainer, text="tSNE file: ").grid(column=0, row=0, sticky='w')
         tk.Button(tsneContainer, text="Load", command=lambda: self.get_filename('tsne')).grid(column=1, row=0,
-                                                                                                  sticky='w')
+                                                                                              sticky='w')
 
         self.tsnefileVar = tk.StringVar()
         self.tsnefileVar.set("None selected")
@@ -288,7 +288,7 @@ class SCRBGui(tk.Tk):
         fontP.set_size('xx-small')
 
         # get the correct side length
-        while num_genes > side**2:
+        while num_genes+1 > side**2:
             side += 1
 
         matrix = self.data['matrix']
@@ -296,6 +296,7 @@ class SCRBGui(tk.Tk):
         communities = self.data['cluster']
 
         fig, axarr = plt.subplots(side, side)
+        fig.set_size_inches(6, 6)
         sc = axarr[0, 0].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
                             c=communities.values, edgecolors='none', cmap='rainbow')
         axarr[0, 0].set(adjustable='box-forced')

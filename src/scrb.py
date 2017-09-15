@@ -242,12 +242,12 @@ class SCRBGui(tk.Tk):
                                        font=self.helv20, height=5, width=30, wraplength=60)
         self.visual_button.grid(column=0, row=8, sticky='NSEW')
 
-        self.notebook = ttk.Notebook(height=700, width=700)
+        self.notebook = ttk.Notebook(height=700, width=800)
         self.notebook.grid(column=1, row=0, rowspan=14, columnspan=4, sticky='NSEW')
         self.tabs = []
 
         # update
-        self.geometry('1100x750')
+        self.geometry('1200x750')
 
         # visualize cluster on tSNE projection upon loading
         self._visualizeCluster()
@@ -304,7 +304,7 @@ class SCRBGui(tk.Tk):
         communities = self.data['cluster']
 
         fig, axarr = plt.subplots(side, side)
-        fig.set_size_inches(7, 7)
+        fig.set_size_inches(8, 7)
         sc = axarr[0, 0].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
                             c=communities.values, edgecolors='none', cmap='rainbow')
         axarr[0, 0].set(adjustable='box-forced')
@@ -364,6 +364,8 @@ class SCRBGui(tk.Tk):
 
         self.currentPlot = 'tsne'
 
+        self.fileMenu.entryconfig(0, state='normal')
+
 
     def _visualizeCluster(self):
         tsnedata = self.data['tsne']
@@ -373,7 +375,7 @@ class SCRBGui(tk.Tk):
             communities = [x+1 for x in communities]
         color = communities
 
-        self.fig = plt.figure(figsize=[7, 7])
+        self.fig = plt.figure(figsize=[8, 7])
         gs = gridspec.GridSpec(1, 1)
         self.ax = self.fig.add_subplot(gs[0, 0])
 
@@ -392,6 +394,8 @@ class SCRBGui(tk.Tk):
         self.canvas.get_tk_widget().grid(column=1, row=1, rowspan=10, columnspan=4, sticky='NSEW')
 
         self.currentPlot = 'tsne'
+
+        self.fileMenu.entryconfig(0, state='normal')
 
     @staticmethod
     def plot_tsne(tsne, fig=None, ax=None, density=False, color=None, ge=False, title='tSNE projection'):

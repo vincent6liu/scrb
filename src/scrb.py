@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import seaborn as sns
 import re
+from copy import deepcopy
 from matplotlib.font_manager import FontProperties
 
 # set plotting defaults
@@ -207,7 +208,7 @@ class SCRBGui(tk.Tk):
             self.data['cluster'] = clusters
             labels = []
             for line in cluster_file:
-                newlab = re.split('[\t ,]',line)
+                newlab = re.split('[\t ,]', line)
                 newlab[1] = newlab[1][:-1]
                 newlab = tuple(newlab)
                 labels.append(newlab)
@@ -229,7 +230,7 @@ class SCRBGui(tk.Tk):
             item.grid_forget()
 
         # list of genes ranked by p-value
-        self.genes_list = ttk.Treeview(height=28)
+        self.genes_list = ttk.Treeview(height=34)
         self.genes_list.heading('#0', text='Genes')
         self.genes_list.grid(column=0, row=0, rowspan=6, sticky='NSEW')
         ysb = ttk.Scrollbar(orient=tk.VERTICAL, command=self.genes_list.yview)
@@ -241,12 +242,12 @@ class SCRBGui(tk.Tk):
                                        font=self.helv20, height=5, width=30, wraplength=60)
         self.visual_button.grid(column=0, row=8, sticky='NSEW')
 
-        self.notebook = ttk.Notebook(height=600, width=600)
+        self.notebook = ttk.Notebook(height=700, width=700)
         self.notebook.grid(column=1, row=0, rowspan=14, columnspan=4, sticky='NSEW')
         self.tabs = []
 
         # update
-        self.geometry('1000x650')
+        self.geometry('1100x750')
 
         # visualize cluster on tSNE projection upon loading
         self._visualizeCluster()
@@ -261,9 +262,16 @@ class SCRBGui(tk.Tk):
         self.get_genes.resizable(False, False)
         self.get_genes.title("Select genes")
 
+        entry = []
+        for key in self.genes_list.selection():
+            curgene = self.genes_list.item(key, 'text').split(' (')[0]
+            entry.append(curgene)
+        entry = ', '.join(entry)
+
         geneEntryContainer = tk.Frame(self.get_genes)
         geneEntryContainer.grid(column=0, row=0, sticky='w')
         self.geneVar = tk.StringVar()
+        self.geneVar.set(entry)
         tk.Label(geneEntryContainer, text="Select one or more genes, separated by commas:").grid(column=0,
                                                                                                  row=0, sticky='w')
         tk.Entry(geneEntryContainer, textvariable=self.geneVar).grid(column=1, row=0, sticky='w')
@@ -296,7 +304,7 @@ class SCRBGui(tk.Tk):
         communities = self.data['cluster']
 
         fig, axarr = plt.subplots(side, side)
-        fig.set_size_inches(6, 6)
+        fig.set_size_inches(7, 7)
         sc = axarr[0, 0].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
                             c=communities.values, edgecolors='none', cmap='rainbow')
         axarr[0, 0].set(adjustable='box-forced')
@@ -306,8 +314,9 @@ class SCRBGui(tk.Tk):
         lp = lambda i: plt.plot([], color=sc.cmap(sc.norm(i)), ms=np.sqrt(size), mec="none",
                                 label="Cluster {:g}".format(i), ls="", marker="o")[0]
         handles = [lp(int(i)) for i in np.unique(communities)]
-        plt.legend(handles=handles, prop=fontP, loc='upper right').set_frame_on(True)
+        plt.legend(handles=handles, prop=fontP, bbox_to_anchor=(0, 1), loc='upper left', ncol=1).set_frame_on(True)
         """
+
 
         for i in range(side):
             for j in range(side):
@@ -319,8 +328,11 @@ class SCRBGui(tk.Tk):
                 elif len(genes) != 0:
                     curgene = genes.pop(0)
                     expression = matrix[curgene]
-                    axarr[i, j].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
-                                        c=expression.values, edgecolors='none', cmap='Oranges')
+                    expression = np.log10(expression + 0.1)
+                    lgmatrix = np.log10(matrix.as_matrix().flatten() + 0.1)
+                    sc = axarr[i, j].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size, c=expression.values,
+                                             edgecolors='none', cmap='coolwarm',
+                                             vmin=min(lgmatrix), vmax=np.percentile(lgmatrix, 97))
                     axarr[i, j].set(adjustable='box-forced')
                     axarr[i, j].set_title(curgene, fontsize=12)
 
@@ -328,6 +340,9 @@ class SCRBGui(tk.Tk):
                         tick.label.set_fontsize(10)
                     for tick in axarr[i, j].yaxis.get_major_ticks():
                         tick.label.set_fontsize(10)
+
+                    fig.colorbar(sc, ax=axarr[i, j], orientation='vertical')
+
                 else:
                     axarr[i, j].set(adjustable='box-forced')
                     # turn off ones that do not display genes
@@ -341,7 +356,7 @@ class SCRBGui(tk.Tk):
         plt.subplots_adjust(wspace=None, hspace=0.3)
 
         self.tabs.append([tk.Frame(self.notebook), fig])
-        self.notebook.add(self.tabs[len(self.tabs) - 1][0], text="Cluster")
+        self.notebook.add(self.tabs[len(self.tabs) - 1][0], text="Expression")
 
         self.canvas = FigureCanvasTkAgg(fig, self.tabs[len(self.tabs) - 1][0])
         self.canvas.show()
@@ -358,7 +373,7 @@ class SCRBGui(tk.Tk):
             communities = [x+1 for x in communities]
         color = communities
 
-        self.fig = plt.figure(figsize=[6, 6])
+        self.fig = plt.figure(figsize=[7, 7])
         gs = gridspec.GridSpec(1, 1)
         self.ax = self.fig.add_subplot(gs[0, 0])
 
@@ -422,7 +437,13 @@ class SCRBGui(tk.Tk):
         return fig, ax
 
     def save_plot(self):
-        pass  # to be implemented
+        tab = self.notebook.index(self.notebook.select())
+        default_name = self.notebook.tab(self.notebook.select(), "text")
+
+        plotFileName = filedialog.asksaveasfilename(title='Save Plot', defaultextension='.png',
+                                                    initialfile=default_name)
+        if plotFileName is not None:
+            self.tabs[tab][1].savefig(plotFileName)
 
     def quit_scrb(self):
         self.quit()

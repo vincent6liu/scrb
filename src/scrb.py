@@ -300,7 +300,7 @@ class SCRBGui(tk.Tk):
         sc = axarr[0, 0].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
                             c=communities.values, edgecolors='none', cmap='rainbow')
         axarr[0, 0].set(adjustable='box-forced')
-        axarr[0, 0].set_title('Cluster')
+        axarr[0, 0].set_title('Cluster', fontsize=12)
 
         """
         lp = lambda i: plt.plot([], color=sc.cmap(sc.norm(i)), ms=np.sqrt(size), mec="none",
@@ -312,14 +312,22 @@ class SCRBGui(tk.Tk):
         for i in range(side):
             for j in range(side):
                 if i == 0 and j == 0:
-                    pass
+                    for tick in axarr[i, j].xaxis.get_major_ticks():
+                        tick.label.set_fontsize(10)
+                    for tick in axarr[i, j].yaxis.get_major_ticks():
+                        tick.label.set_fontsize(10)
                 elif len(genes) != 0:
                     curgene = genes.pop(0)
                     expression = matrix[curgene]
                     axarr[i, j].scatter(tsnedata['tSNE1'], tsnedata['tSNE2'], s=size,
                                         c=expression.values, edgecolors='none', cmap='Oranges')
                     axarr[i, j].set(adjustable='box-forced')
-                    axarr[i, j].set_title(curgene)
+                    axarr[i, j].set_title(curgene, fontsize=12)
+
+                    for tick in axarr[i, j].xaxis.get_major_ticks():
+                        tick.label.set_fontsize(10)
+                    for tick in axarr[i, j].yaxis.get_major_ticks():
+                        tick.label.set_fontsize(10)
                 else:
                     axarr[i, j].set(adjustable='box-forced')
                     # turn off ones that do not display genes
@@ -327,6 +335,10 @@ class SCRBGui(tk.Tk):
 
         plt.setp([a.get_xticklabels() for a in axarr[0, :]], visible=False)
         plt.setp([a.get_yticklabels() for a in axarr[:, 1]], visible=False)
+        if side > 2:
+            plt.setp([a.get_yticklabels() for a in axarr[:, 2]], visible=False)
+
+        plt.subplots_adjust(wspace=None, hspace=0.3)
 
         self.tabs.append([tk.Frame(self.notebook), fig])
         self.notebook.add(self.tabs[len(self.tabs) - 1][0], text="Cluster")
